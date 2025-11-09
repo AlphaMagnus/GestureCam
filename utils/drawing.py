@@ -256,13 +256,15 @@ def draw_review_prompts(
     frame: np.ndarray,
     prompts: Sequence[str],
     origin: Tuple[int, int] = (20, 60),
+    font_scale: float = 0.8,
+    line_height: int = 38,
 ) -> np.ndarray:
     """Display review action prompts on the captured frame with clear layout."""
     output = frame.copy()
     x, y = origin
     # background bar
-    total_w = max((cv2.getTextSize(p, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0][0] for p in prompts), default=200) + 48
-    total_h = 38 * len(prompts) + 16
+    total_w = max((cv2.getTextSize(p, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)[0][0] for p in prompts), default=200) + 48
+    total_h = line_height * len(prompts) + 16
     
     # Modern shadow
     output = _modern_shadow(output, (x - 10, y - 10), (x + total_w + 10, y + total_h + 10), blur=16, alpha=0.35)
@@ -272,8 +274,8 @@ def draw_review_prompts(
     
     yy = y + 8
     for prompt in prompts:
-        cv2.putText(output, prompt, (x + 8, yy + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, MODERN_TEXT[::-1], 2, lineType=cv2.LINE_AA)
-        yy += 38
+        cv2.putText(output, prompt, (x + 8, yy + 20), cv2.FONT_HERSHEY_SIMPLEX, font_scale, MODERN_TEXT[::-1], 2, lineType=cv2.LINE_AA)
+        yy += line_height
     return output
 
 def draw_hold_progress(
