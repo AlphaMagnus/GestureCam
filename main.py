@@ -660,6 +660,11 @@ def run(camera_index: int = 0) -> None:
             bottom_panel_y = viewport_y + viewport_height + 10
 
             composite_frame = draw_mode_banner(composite_frame, current_mode.value)
+            
+            # Calculate mode banner height to position gesture menu below it
+            # Mode banner is at y=12, with padding=16, text height ~20-25, so total height ~50-60
+            mode_banner_height = 60
+            gesture_menu_y = 12 + mode_banner_height + 15  # 15px spacing below mode banner
 
             if holding_active:
                 composite_frame = draw_hold_progress(
@@ -668,31 +673,78 @@ def run(camera_index: int = 0) -> None:
                     center=(composite_width - 65, 65),
                 )
 
+            # Track right side y position for stacking messages
+            right_side_y = top_panel_y + 10
+
             if current_mode not in {Mode.COUNTDOWN, Mode.REVIEW, Mode.EDIT} and not holding_active:
                 if gesture_names:
+                    # Position current gesture text at top right
+                    # Calculate width needed for gesture text box to align it properly from right edge
+                    prettified_gestures = prettify_labels(gesture_names)
+                    padding_x = 18
+                    shadow_offset = 6
+                    max_text_width = max((cv2.getTextSize(g, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)[0][0] for g in prettified_gestures), default=120)
+                    box_width = max_text_width + padding_x * 2 + shadow_offset * 2
+                    right_panel_x = composite_width - box_width - 10  # 10px margin from right edge
                     composite_frame = overlay_gestures(
                         composite_frame,
-                        prettify_labels(gesture_names),
-                        origin=(left_panel_x, top_panel_y + 80),
+                        prettified_gestures,
+                        origin=(right_panel_x, right_side_y),
                         cache_key="gesture_names",
                     )
+                    # Update right side y position for next element
+                    # overlay_gestures uses: padding_y*2 + line_h*len + shadow_offset*2
+                    padding_y = 12
+                    line_h = 32
+                    shadow_offset = 6
+                    box_height = padding_y * 2 + line_h * len(prettified_gestures) + shadow_offset * 2
+                    right_side_y += box_height + 10  # height + spacing
+                
                 if status_messages:
-                    y_offset = top_panel_y + 80 + (30 * len(gesture_names) if gesture_names else 0)
+                    # Position status messages on right side, below gesture names
+                    prettified_messages = status_messages
+                    padding_x = 18
+                    shadow_offset = 6
+                    max_text_width = max((cv2.getTextSize(m, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)[0][0] for m in prettified_messages), default=120)
+                    box_width = max_text_width + padding_x * 2 + shadow_offset * 2
+                    right_panel_x = composite_width - box_width - 10  # 10px margin from right edge
                     composite_frame = overlay_gestures(
                         composite_frame,
-                        status_messages,
-                        origin=(left_panel_x, y_offset),
+                        prettified_messages,
+                        origin=(right_panel_x, right_side_y),
+                        cache_key="status_messages",
+                    )
+                    # Update right side y position for potential future elements
+                    padding_y = 12
+                    line_h = 32
+                    box_height = padding_y * 2 + line_h * len(prettified_messages) + shadow_offset * 2
+                    right_side_y += box_height + 10
+            else:
+                # For COUNTDOWN, REVIEW, EDIT modes, show status messages on right side
+                if status_messages:
+                    prettified_messages = status_messages
+                    padding_x = 18
+                    shadow_offset = 6
+                    max_text_width = max((cv2.getTextSize(m, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)[0][0] for m in prettified_messages), default=120)
+                    box_width = max_text_width + padding_x * 2 + shadow_offset * 2
+                    right_panel_x = composite_width - box_width - 10
+                    composite_frame = overlay_gestures(
+                        composite_frame,
+                        prettified_messages,
+                        origin=(right_panel_x, right_side_y),
                         cache_key="status_messages",
                     )
 
-            # Show gesture hints for all modes
+            # Show gesture hints for all modes (on left side, below mode banner, smaller size)
             if current_mode == Mode.PREVIEW:
                 composite_frame = draw_review_prompts(
                     composite_frame,
                     [
                         "Thumbs up: Enter Gesture Mode",
                     ],
-                    origin=(left_panel_x, top_panel_y + 50),
+                    origin=(left_panel_x, gesture_menu_y),
+                    font_scale=0.65,
+                    line_height=28,
                 )
             elif current_mode == Mode.GESTURE:
                 composite_frame = draw_review_prompts(
@@ -703,7 +755,9 @@ def run(camera_index: int = 0) -> None:
                         "Index finger: Zoom In",
                         "Pinky finger: Zoom Out",
                     ],
-                    origin=(left_panel_x, top_panel_y + 50),
+                    origin=(left_panel_x, gesture_menu_y),
+                    font_scale=0.65,
+                    line_height=28,
                 )
             elif current_mode == Mode.COUNTDOWN:
                 composite_frame = draw_review_prompts(
@@ -711,7 +765,9 @@ def run(camera_index: int = 0) -> None:
                     [
                         "Countdown in progress...",
                     ],
-                    origin=(left_panel_x, top_panel_y + 50),
+                    origin=(left_panel_x, gesture_menu_y),
+                    font_scale=0.65,
+                    line_height=28,
                 )
             elif current_mode == Mode.REVIEW:
                 composite_frame = draw_review_prompts(
@@ -722,7 +778,9 @@ def run(camera_index: int = 0) -> None:
                         "Open palm: Edit Photo",
                         "Rock sign: Exit Gesture Mode",
                     ],
-                    origin=(left_panel_x, top_panel_y + 50),
+                    origin=(left_panel_x, gesture_menu_y),
+                    font_scale=0.65,
+                    line_height=28,
                 )
             elif current_mode == Mode.EDIT:
                 composite_frame = draw_review_prompts(
@@ -733,7 +791,9 @@ def run(camera_index: int = 0) -> None:
                         "Two open palms: Save",
                         "Two fists: Discard",
                     ],
-                    origin=(left_panel_x, top_panel_y + 50),
+                    origin=(left_panel_x, gesture_menu_y),
+                    font_scale=0.65,
+                    line_height=28,
                 )
 
             cv2.imshow("Gesture Camera Controller", composite_frame)
