@@ -465,6 +465,57 @@ class GestureRecognition:
 
         return None
 
+    def detect_two_hand_gesture(self, gestures: List[HandGesture]) -> Optional[str]:
+        """Detect gestures that require BOTH hands.
+        
+        In EDIT mode:
+        - two_open_palm = SAVE
+        - two_fist = DISCARD
+        
+        Requires exactly 2 distinct hands showing the same gesture with high confidence.
+        """
+        if len(gestures) < 2:
+            return None
+        
+        # Group gestures by hand_id to ensure we have 2 distinct hands
+        gestures_by_hand: Dict[str, List[HandGesture]] = {}
+        for g in gestures:
+            if g.hand_id:
+                if g.hand_id not in gestures_by_hand:
+                    gestures_by_hand[g.hand_id] = []
+                gestures_by_hand[g.hand_id].append(g)
+        
+        # Must have exactly 2 distinct hands
+        if len(gestures_by_hand) != 2:
+            return None
+        
+        # Get gesture lists for both hands
+        hand_gesture_lists = [gestures_by_hand[hand_id] for hand_id in gestures_by_hand.keys()]
+        
+        # Extract gesture names and check confidence
+        hand1_gestures = [g.name for g in hand_gesture_lists[0]]
+        hand2_gestures = [g.name for g in hand_gesture_lists[1]]
+        
+        # Get highest confidence for each gesture type per hand
+        hand1_open_palm_conf = max([g.confidence for g in hand_gesture_lists[0] if g.name == "open_palm"], default=0.0)
+        hand2_open_palm_conf = max([g.confidence for g in hand_gesture_lists[1] if g.name == "open_palm"], default=0.0)
+        
+        hand1_fist_conf = max([g.confidence for g in hand_gesture_lists[0] if g.name == "fist"], default=0.0)
+        hand2_fist_conf = max([g.confidence for g in hand_gesture_lists[1] if g.name == "fist"], default=0.0)
+        
+        # Check for two open palms (both hands must show open_palm with good confidence)
+        if "open_palm" in hand1_gestures and "open_palm" in hand2_gestures:
+            if hand1_open_palm_conf >= 0.5 and hand2_open_palm_conf >= 0.5:
+                return "two_open_palm"  # Both hands open = SAVE (in edit mode)
+        
+        # Check for two fists (both hands must show fist with high confidence)
+        # Require higher confidence for fist to reduce false positives
+        if "fist" in hand1_gestures and "fist" in hand2_gestures:
+            if hand1_fist_conf >= 0.85 and hand2_fist_conf >= 0.85:
+                return "two_fist"  # Both hands fist = DISCARD (in edit mode)
+        
+        return None
+
     def get_landmarks(self) -> List[Tuple[str, np.ndarray]]:
         """Return the most recent hand landmarks keyed by hand identifier."""
         return [

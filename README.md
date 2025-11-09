@@ -13,15 +13,24 @@ A gesture-controlled camera system built with Python, OpenCV, and MediaPipe Hand
   - Three-finger salute → Disable Gesture Control Mode
   - Thumbs up → Save captured photo
   - Thumbs down → Discard captured photo
+  - OK sign (index + thumb circle) → Enter Edit Mode
 - **State Machine Architecture** with multiple modes:
   - Preview Mode
   - Gesture Control Mode
   - Capture Countdown Mode
   - Review Mode
+  - **Edit Mode** - Real-time photo editing with gesture controls
+- **Photo Editing Features**:
+  - Adjust brightness, contrast, saturation, warmth, and sharpness
+  - Wrist-based parameter selection (hover 2 seconds to select)
+  - Fist gesture for slider control
+  - Two-hand gestures for save/discard (two open palms = save, two fists = discard)
+  - Real-time preview of edits
 - **Multi-frame Stability Detection** for reliable gesture recognition
 - **Digital Zoom** with multiple zoom levels
 - **Photo Capture** with countdown timer and review system
-- **Visual Feedback** with on-screen overlays and progress indicators
+- **Visual Feedback** with on-screen overlays, progress indicators, and gesture hints for all modes
+- **Fixed Display Window** - Always 1280x720 regardless of camera resolution
 
 ## Requirements
 
@@ -76,8 +85,15 @@ python main.py
 #### Photo Review (after capture)
 - **Thumbs Up**: Save the captured photo
 - **Thumbs Down**: Discard the captured photo
-- **Open Palm**: Return to Gesture Mode without saving
-- **Three-Finger Salute**: Exit Gesture Mode and return to Preview
+- **Open Palm**: Enter Edit Mode
+- **Rock Sign**: Exit Gesture Mode and return to Preview
+
+#### Photo Editing (in Edit Mode)
+- **Wrist Position**: Hover over parameter boxes for 2 seconds to select
+- **Fist Gesture**: Move wrist left/right to adjust selected parameter value
+- **Two Open Palms**: Save edited photo
+- **Two Fists**: Discard edits and return to Gesture Mode
+- **Available Parameters**: Brightness, Contrast, Saturation, Warmth, Sharpness
 
 ### Gesture Detection Requirements
 
@@ -119,10 +135,11 @@ GestureCam/
 
 ### State Machine Modes
 
-- **Preview Mode**: Default mode, only open palm gesture enabled
-- **Gesture Control Mode**: Full gesture control active
+- **Preview Mode**: Default mode, thumbs up gesture to enter Gesture Mode
+- **Gesture Control Mode**: Full gesture control active (zoom, capture)
 - **Capture Countdown Mode**: 3-second countdown, gestures disabled
 - **Review Mode**: Display captured photo, review gestures enabled
+- **Edit Mode**: Real-time photo editing with parameter adjustment controls
 
 ### Zoom Implementation
 
@@ -134,10 +151,12 @@ GestureCam/
 
 Key parameters can be adjusted in `main.py`:
 
-- `hold_duration_required`: Time to hold open palm (default: 0.4s)
-- `frames_required_to_confirm`: Frames needed to confirm gesture (default: 2)
-- `stability_threshold_px`: Maximum hand movement for stability (default: 30px)
+- `hold_duration_required`: Time to hold thumbs up (default: 0.3s)
+- `frames_required_to_confirm`: Frames needed to confirm gesture (default: 4)
+- `stability_threshold_norm`: Maximum hand movement for stability (default: 0.12)
 - `countdown_duration`: Photo countdown timer (default: 3.0s)
+- `DISPLAY_WIDTH` / `DISPLAY_HEIGHT`: Fixed window size (default: 1280x720)
+- `DETECTION_WIDTH`: Detection frame width for performance (default: 480)
 
 ## Troubleshooting
 
